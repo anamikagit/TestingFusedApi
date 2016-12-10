@@ -1,14 +1,18 @@
 package com.example.aarya.testingfusedapi.service;
 
+import android.annotation.TargetApi;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.telephony.TelephonyManager;
@@ -22,6 +26,10 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
 
 public class FusedService extends Service implements GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener {
@@ -89,6 +97,27 @@ public class FusedService extends Service implements GoogleApiClient.ConnectionC
             " /" + currentAcc + "/ " + currentSpeed +"/"+currentDateTime +"/"+deviceNum,Toast.LENGTH_LONG).show();
         }
     }
+
+    /*@TargetApi(Build.VERSION_CODES.M)
+    public void handleMessage() {
+        Log.e("anu", "handleMessage is called");
+        Geocoder geocoder = new Geocoder(FusedService.this, Locale.ENGLISH);
+
+        List<Address> addresses = null;
+        try {
+            addresses = geocoder.getFromLocation(currentLat, currentLng, 1);
+            System.out.println("Addressssss" + addresses);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        if (addresses != null) {
+            Address returnedAddress = addresses.get(0);
+            StringBuilder strReturnedAddress = new StringBuilder("\n");
+            for (int i = 0; i < returnedAddress.getMaxAddressLineIndex(); i++) {
+                strReturnedAddress.append(returnedAddress.getAddressLine(i)).append("\n");
+            }*/
+
     @Override
     public IBinder onBind(Intent arg0) {
         return null;
