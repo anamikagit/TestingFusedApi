@@ -21,7 +21,10 @@ import android.widget.Toast;
 
 import com.example.aarya.testingfusedapi.R;
 import com.example.aarya.testingfusedapi.activity.MainActivity;
+import com.example.aarya.testingfusedapi.model.Responce;
 import com.example.aarya.testingfusedapi.model.Util;
+import com.example.aarya.testingfusedapi.rest.ApiClient;
+import com.example.aarya.testingfusedapi.rest.ApiInterface;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationRequest;
@@ -30,6 +33,10 @@ import com.google.android.gms.location.LocationServices;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class FusedService extends Service implements GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener {
@@ -45,16 +52,13 @@ public class FusedService extends Service implements GoogleApiClient.ConnectionC
     private GoogleApiClient mGoogleApiClient;
     // A request to connect to Location Services
     private LocationRequest mLocationRequest;
-    Location mCurrentLocation;
 
     private LocationListener locationListener;
-
+    ApiInterface apiService = ApiClient.getClient().create(ApiInterface.class);
     private class LocationListener implements
             com.google.android.gms.location.LocationListener {
             public LocationListener() {
         }
-
-
         private Context mContext;
         private int mProgressStatus = 0;
         private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
@@ -66,15 +70,6 @@ public class FusedService extends Service implements GoogleApiClient.ConnectionC
                 mProgressStatus = (int)((percentage)*100);
                 Toast.makeText(FusedService.this,"batt :"+mProgressStatus+"%",Toast.LENGTH_LONG).show();
             }
-            /*@Override
-            protected void onCreate(Bundle savedInstanceState) {
-                super.onCreate(savedInstanceState);
-                setContentView(R.layout.activity_main);
-                mContext = getApplicationContext();
-                IntentFilter iFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-                mContext.registerReceiver(mBroadcastReceiver,iFilter);
-            }*/
-
         };
 
         @Override
@@ -85,38 +80,62 @@ public class FusedService extends Service implements GoogleApiClient.ConnectionC
             currentAcc = location.getAccuracy();
             currentSpeed = location.getSpeed();
             currentDateTime = Util.getDateTime();
-
             mContext = getApplicationContext();
             IntentFilter iFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
             mContext.registerReceiver(mBroadcastReceiver,iFilter);
-
+           // getCompleteAddressString(double LATITUDE, double LONGITUDE);
             String deviceNum;
             TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
             deviceNum = telephonyManager.getDeviceId();
             Toast.makeText(FusedService.this,"loc:" +currentLat + "/ " + currentLng +
             " /" + currentAcc + "/ " + currentSpeed +"/"+currentDateTime +"/"+deviceNum,Toast.LENGTH_LONG).show();
+
+
+            Call<List<Responce>> call = apiService.sendGpsData(currentLat+"", currentLng+"",deviceNum,
+                    mProgressStatus+ "", Util.getDateTime(),currentAcc+"","false",
+                    currentSpeed+"", getCompleteAddressString(currentLat,currentLng), "");
+
+            call.enqueue(new Callback<List<Responce>>() {
+
+                @Override
+                public void onResponse(Call<List<Responce>> call, Response<List<Responce>> response) {
+
+                }
+
+                @Override
+                public void onFailure(Call<List<Responce>> call, Throwable t) {
+
+                }
+            });
+
         }
+
+
+
     }
-
-    /*@TargetApi(Build.VERSION_CODES.M)
-    public void handleMessage() {
-        Log.e("anu", "handleMessage is called");
-        Geocoder geocoder = new Geocoder(FusedService.this, Locale.ENGLISH);
-
-        List<Address> addresses = null;
+    private String getCompleteAddressString(double LATITUDE, double LONGITUDE) {
+        String strAdd = "";
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
         try {
-            addresses = geocoder.getFromLocation(currentLat, currentLng, 1);
-            System.out.println("Addressssss" + addresses);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            List<Address> addresses = geocoder.getFromLocation(LATITUDE, LONGITUDE, 1);
+            if (addresses != null) {
+                Address returnedAddress = addresses.get(0);
+                StringBuilder strReturnedAddress = new StringBuilder("");
 
-        if (addresses != null) {
-            Address returnedAddress = addresses.get(0);
-            StringBuilder strReturnedAddress = new StringBuilder("\n");
-            for (int i = 0; i < returnedAddress.getMaxAddressLineIndex(); i++) {
-                strReturnedAddress.append(returnedAddress.getAddressLine(i)).append("\n");
-            }*/
+                for (int i = 0; i < returnedAddress.getMaxAddressLineIndex(); i++) {
+                    strReturnedAddress.append(returnedAddress.getAddressLine(i)).append("\n");
+                }
+                strAdd = strReturnedAddress.toString();
+                Log.e("My Current address", "" + strReturnedAddress.toString());
+            } else {
+                Log.e("My Current address", "No Address returned!");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.e("My Current address", "Can not get Address!");
+        }
+        return strAdd;
+    }
 
     @Override
     public IBinder onBind(Intent arg0) {
